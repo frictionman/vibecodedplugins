@@ -34,6 +34,23 @@ npm run seed         # optional: adds 6 demo plugins (placeholder zips) to the r
 
 Data lives in `./data` (set `DATA_DIR` to move it). Delete that folder to start fresh.
 
+## Database migrations
+
+The schema lives in numbered files under `src/lib/migrations/` (`001_initial.ts`, …). On startup `src/lib/db.ts` runs any that haven't been applied yet, each in its own transaction, and records them in the `schema_migrations` table.
+
+To change the schema, add `NNN_short_name.ts` with the next id, list it in `src/lib/migrations/index.ts`, and never edit a migration that has already shipped.
+
+## Tests and CI
+
+```bash
+npm run lint
+npm run typecheck    # next typegen + tsc
+npm test             # unit tests (Vitest): zip/image checks, migrations, upload/report/delete API routes
+npm run test:e2e     # Playwright: builds the app, starts it on :3100 with a throwaway data dir, then uploads, searches, reports and deletes a plugin
+```
+
+The first e2e run needs a browser: `npx playwright install chromium`. GitHub Actions (`.github/workflows/ci.yml`) runs all of these plus `next build` on every pull request.
+
 ## Deploying
 
 Needs a host with a persistent disk for `data/` (a VPS, Fly.io volume, Railway volume…), or swap storage to R2/S3 and SQLite to a hosted database first. If the app sits behind a proxy, make sure it sets `X-Forwarded-For`, since rate limits key on it.
@@ -48,7 +65,9 @@ src/app/guidelines/               safety & rules
 src/app/api/plugins/              upload (POST), delete (DELETE), download, report
 src/app/api/screenshots/[key]/    screenshot files
 src/lib/inspect.ts                zip + image checks
-src/lib/db.ts, plugins.ts         schema and queries
+src/lib/db.ts, plugins.ts         database connection and queries
+src/lib/migrate.ts, migrations/   schema migrations
+test/unit/, e2e/                  Vitest unit tests, Playwright end-to-end tests
 src/lib/storage.ts                file storage
 ```
 
